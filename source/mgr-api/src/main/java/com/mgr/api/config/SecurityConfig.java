@@ -35,6 +35,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return super.authenticationManagerBean();
     }
 
+    // gắn thông tin người dùng và cách mã hóa pass
     @Autowired
     public void globalUserDetails(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsService)
@@ -44,8 +45,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-                .cors().disable()
-                .csrf().disable()
+                .cors().disable()//tấn công dò pass cors
+                .csrf().disable()//tấn công giả mạp lưu trong session
                 .authorizeRequests()
                 .anyRequest().authenticated();
     }
@@ -56,11 +57,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         web.ignoring().antMatchers("/v2/api-docs", "/configuration/ui", "/swagger-resources/**", "/configuration/**", "/swagger-ui.html", "/webjars/**");
     }
 
+    //có khả năng nhận biết mình đang dùng thuật toán nào dựa vào tiền tố
     @Bean
     public PasswordEncoder encoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
+    // giải quyết port front và back
     @Bean
     public FilterRegistrationBean<CorsFilter> corsFilter() {
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

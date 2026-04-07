@@ -7,6 +7,7 @@ import com.mgr.api.repository.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -88,6 +89,110 @@ public class UserServiceImpl implements UserDetailsService {
         boolean enabled = true;
         if (account.getStatus() != MgrConstant.STATUS_ACTIVE) {
             log.error("User had been locked");
+            enabled = false;
+        }
+
+        Set<GrantedAuthority> grantedAuthorities = getAccountPermission(account);
+
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(account.getUsername(), account.getPassword(), enabled, true, true, true, grantedAuthorities);
+
+        OAuth2Request oAuth2Request = new OAuth2Request(requestParameters, clientId,
+                userDetails.getAuthorities(), approved, client.getScope(),
+                client.getResourceIds(), null, responseTypes, extensionProperties);
+        org.springframework.security.core.userdetails.User userPrincipal = new org.springframework.security.core.userdetails.User(userDetails.getUsername(), userDetails.getPassword(), userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userPrincipal, null, userDetails.getAuthorities());
+        OAuth2Authentication auth = new OAuth2Authentication(oAuth2Request, authenticationToken);
+        return tokenServices.createAccessToken(auth);
+    }
+    public OAuth2AccessToken getAccessTokenForUser(ClientDetails client,
+                                                     TokenRequest tokenRequest,
+                                                     String username,
+                                                     String password,
+                                                     String tenant,
+                                                     String grantType,
+                                                     AuthorizationServerTokenServices tokenServices) throws GeneralSecurityException, IOException {
+        // Setup param that oauth2 required
+        Map<String, String> requestParameters = new HashMap<>();
+        requestParameters.put("grantType", grantType);
+        requestParameters.put("tenantId", tenant);
+        String clientId = client.getClientId();
+        boolean approved = true;
+        Set<String> responseTypes = new HashSet<>();
+        responseTypes.add("code");
+        Map<String, Serializable> extensionProperties = new HashMap<>();
+
+        // Check info account
+        Account account = accountRepository.findFirstByUsername(username).orElse(null);
+        if (account == null) {
+            log.error("Invalid username or password.");
+            throw new UsernameNotFoundException("Invalid username or password.");
+        }
+
+        if (!passwordEncoder.matches(password, account.getPassword())) {
+            log.error("Invalid username or password.");
+            throw new UsernameNotFoundException("Invalid username or password.");
+        }
+
+        if (account.getKind() != 2) {
+            log.error(" Your account {} don't have permission access!", username);
+            throw new BadCredentialsException("Account don't have permission access!");
+        }
+
+        boolean enabled = true;
+        if (account.getStatus() != MgrConstant.STATUS_ACTIVE) {
+            log.error("Seller had been locked");
+            enabled = false;
+        }
+
+        Set<GrantedAuthority> grantedAuthorities = getAccountPermission(account);
+
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(account.getUsername(), account.getPassword(), enabled, true, true, true, grantedAuthorities);
+
+        OAuth2Request oAuth2Request = new OAuth2Request(requestParameters, clientId,
+                userDetails.getAuthorities(), approved, client.getScope(),
+                client.getResourceIds(), null, responseTypes, extensionProperties);
+        org.springframework.security.core.userdetails.User userPrincipal = new org.springframework.security.core.userdetails.User(userDetails.getUsername(), userDetails.getPassword(), userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userPrincipal, null, userDetails.getAuthorities());
+        OAuth2Authentication auth = new OAuth2Authentication(oAuth2Request, authenticationToken);
+        return tokenServices.createAccessToken(auth);
+    }
+    public OAuth2AccessToken getAccessTokenForSeller(ClientDetails client,
+                                                     TokenRequest tokenRequest,
+                                                     String username,
+                                                     String password,
+                                                     String tenant,
+                                                     String grantType,
+                                                     AuthorizationServerTokenServices tokenServices) throws GeneralSecurityException, IOException {
+        // Setup param that oauth2 required
+        Map<String, String> requestParameters = new HashMap<>();
+        requestParameters.put("grantType", grantType);
+        requestParameters.put("tenantId", tenant);
+        String clientId = client.getClientId();
+        boolean approved = true;
+        Set<String> responseTypes = new HashSet<>();
+        responseTypes.add("code");
+        Map<String, Serializable> extensionProperties = new HashMap<>();
+
+        // Check info account
+        Account account = accountRepository.findFirstByUsername(username).orElse(null);
+        if (account == null) {
+            log.error("Invalid username or password.");
+            throw new UsernameNotFoundException("Invalid username or password.");
+        }
+
+        if (!passwordEncoder.matches(password, account.getPassword())) {
+            log.error("Invalid username or password.");
+            throw new UsernameNotFoundException("Invalid username or password.");
+        }
+
+        if (account.getKind() != 2) {
+            log.error(" Your account {} don't have permission access!", username);
+            throw new BadCredentialsException("Account don't have permission access!");
+        }
+
+        boolean enabled = true;
+        if (account.getStatus() != MgrConstant.STATUS_ACTIVE) {
+            log.error("Seller had been locked");
             enabled = false;
         }
 

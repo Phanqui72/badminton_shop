@@ -510,4 +510,10 @@
     <changeSet author="Authentication" id="1767890414287-22">
         <addForeignKeyConstraint baseColumnNames="group_id" baseTableName="db_mgr_account" constraintName="FKnl7c8opra1y7535xeiui94n5v" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id" referencedTableName="db_mgr_group" validate="true"/>
     </changeSet>
+    <changeSet author="Authentication" id="1767890414287-23">
+        <update tableName="oauth_client_details">
+            <column name="authorized_grant_types" value="custom,password,refresh_token,client_credentials,authorization_code,user,seller"/>
+            <where>client_id = 'abc_client'</where>
+        </update>
+    </changeSet>
 </databaseChangeLog>

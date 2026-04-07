@@ -40,6 +40,10 @@ public class CustomTokenGranter extends AbstractTokenGranter {
                 return userService.getAccessTokenForCustom(client, tokenRequest, username, password, tenant, tokenRequest.getGrantType(), this.getTokenServices());
             } else if (!Objects.equals(tokenRequest.getGrantType(), SecurityConstant.GRANT_TYPE_PASSWORD)) {
                 throw new InvalidTokenException("Invalid grant type: " + tokenRequest.getGrantType());
+            } else if (!Objects.equals(tokenRequest.getGrantType(), SecurityConstant.GRANT_TYPE_USER)){
+                return userService.getAccessTokenForUser(client, tokenRequest, username, password, tenant, tokenRequest.getGrantType(), this.getTokenServices());
+            } else if (!Objects.equals(tokenRequest.getGrantType(), SecurityConstant.GRANT_TYPE_SELLER)){
+                return userService.getAccessTokenForSeller(client, tokenRequest, username, password, tenant, tokenRequest.getGrantType(), this.getTokenServices());
             }
             return null;
         } catch (GeneralSecurityException | IOException e) {
