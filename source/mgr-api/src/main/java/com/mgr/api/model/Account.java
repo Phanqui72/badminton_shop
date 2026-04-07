@@ -8,7 +8,7 @@ import lombok.Setter;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = TablePrefix.PREFIX_TABLE + "account")
@@ -30,13 +30,13 @@ public class Account extends Auditable<String> {
     @JoinColumn(name = "group_id")
     private Group group;
     @Column(name = "last_login")
-    private Date lastLogin;
+    private LocalDateTime lastLogin;
     @Column(name = "avatar_path")
     private String avatarPath;
     @Column(name = "reset_pwd_code")
     private String resetPwdCode;
     @Column(name = "reset_pwd_time")
-    private Date resetPwdTime;
+    private LocalDateTime resetPwdTime;
     @Column(name = "attempt_forget_pwd")
     private Integer attemptCode;
     @Column(name = "attempt_login")

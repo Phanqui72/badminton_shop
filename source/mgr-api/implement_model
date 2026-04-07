@@ -1,0 +1,96 @@
+# Kế Hoạch Thiết Kế Hệ Thống Model E-commerce (Chuẩn Hóa)
+
+Tài liệu này trình bày cấu trúc các model cơ bản cho hệ thống Ecommerce, tập trung vào việc tách biệt **Account (Đăng nhập)** và **Profile (Người dùng/Người bán)** bằng kỹ thuật `@OneToOne` + `@MapsId` để tối ưu hiệu suất và quản lý dữ liệu.
+
+---
+
+## 1. Nhóm Quản Lý Tài Khoản & Định Danh (Identity)
+
+Sử dụng cơ chế **Shared Primary Key** (Dùng chung ID của Account cho các bảng Profile tương ứng).
+
+### 1.1. Account (Bảng Gốc - Identity & Auth)
+*Kế thừa `Auditable<String>`*
+-   **Fields:**
+    -   `id`: Primary Key (Sinh tự động bởi `IdGenerator`).
+    -   `username` / `email` / `phone`: Định danh đăng nhập (Unique).
+    -   `password`: Lưu hash BCrypt.
+    -   `kind`: Phân loại (1: Admin, 2: User, 3: Seller).
+    -   `group_id`: Liên kết bảng `Group` (Phân quyền RBAC).
+    -   `isSuperAdmin`: Cờ đánh dấu admin tối cao.
+-   **Relationships:**
+    -   `@OneToOne User`: (Optional) Liên kết mapping ngược lại User Profile.
+    -   `@OneToOne Seller`: (Optional) Liên kết mapping ngược lại Seller Profile.
+
+### 1.2. User (Khách hàng - Shopper Profile)
+*Kế thừa `Auditable<String>`*
+-   **Fields:**
+    -   `id`: Primary Key (Lấy từ Account ID).
+    -   `firstName` / `lastName`: Tách riêng để dễ xử lý thanh toán/vận chuyển.
+    -   `gender`: Giới tính (Enum).
+    -   `dob`: Ngày sinh (Dùng cho marketing/sinh nhật).
+    -   `avatarPath`: Đường dẫn ảnh đại diện.
+-   **Relationships:**
+    -   `@OneToOne @MapsId Account`: Liên kết 1-1 với Account (Dùng chung ID).
+    -   `@OneToMany Address`: Các địa chỉ nhận hàng của User.
+
+### 1.3. Seller (Người bán - Shop Profile)
+*Kế thừa `Auditable<String>`*
+-   **Fields:**
+    -   `id`: Primary Key (Lấy từ Account ID).
+    -   `shopName`: Tên cửa hàng.
+    -   `shopDescription`: Mô tả.
+    -   `shopEmail` / `shopPhone`: Liên hệ riêng của shop.
+    -   `isVerified`: Cờ xác minh shop uy tín.
+-   **Relationships:**
+    -   `@OneToOne @MapsId Account`: Liên kết 1-1 với Account.
+    -   `@OneToMany Product`: Các sản phẩm thuộc về shop này.
+
+---
+
+## 2. Nhóm Sản Phẩm & Danh Mục (Catalog)
+
+### 2.1. Category (Danh mục)
+-   **Fields:** `name`, `description`, `slug`.
+-   **Relationships:** `@ManyToOne Category parent`: Hỗ trợ danh mục đa cấp (Cha-Con).
+
+### 2.2. Product (Sản phẩm)
+-   **Fields:** `name`, `description`, `price`, `stockQuantity`, `sku`, `status`.
+-   **Relationships:**
+    -   `@ManyToOne Category`: Thuộc danh mục nào.
+    -   `@ManyToOne Seller`: Shop nào đang bán sản phẩm này.
+
+---
+
+## 3. Nhóm Giao Dịch & Giỏ Hàng (Transactions)
+
+### 3.1. Address (Địa chỉ)
+-   **Fields:** `receiverName`, `phone`, `province`, `district`, `ward`, `detail`, `isDefault`.
+-   **Relationships:** `@ManyToOne User`: Thuộc về User nào.
+
+### 3.2. Cart & CartItem (Giỏ hàng)
+-   **Cart:** `@OneToOne User`.
+-   **CartItem:**
+    -   `@ManyToOne Cart`.
+    -   `@ManyToOne Product`.
+    -   `quantity`: Số lượng.
+
+### 3.3. Order & OrderItem (Đơn hàng)
+-   **Order:**
+    -   `totalAmount`, `status` (Enum: PENDING, PAID, SHIPPED, CANCELLED).
+    -   `shippingAddress`: **Snapshot** (Lưu địa chỉ dạng String tại thời điểm mua, không trỏ FK về bảng Address để tránh dữ liệu lịch sử bị thay đổi).
+    -   `@ManyToOne User`: Ai đặt hàng.
+-   **OrderItem:**
+    -   `@ManyToOne Order`.
+    -   `@ManyToOne Product`.
+    -   `price`: Lưu giá tại thời điểm mua (Tránh lỗi khi sản phẩm đổi giá sau này).
+    -   `quantity`.
+
+---
+
+## Câu Hỏi thảo luận:
+
+> [!IMPORTANT]
+> - Bạn có muốn gộp `fullName` vào `Account` luôn không, hay để mỗi Profile tự quản lý tên riêng của nó (User có tên người, Seller có tên Shop)?
+> - Bạn có cần hỗ trợ đa ngôn ngữ hay đa tiền tệ (Multi-currency) ngay từ đầu không?
+
+Bạn hãy xem qua bản kế hoạch tiếng Việt này nhé! Nếu ổn, tôi sẽ bắt đầu khởi tạo mã nguồn cho các Entity này.
