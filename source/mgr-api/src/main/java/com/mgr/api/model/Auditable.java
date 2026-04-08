@@ -12,7 +12,7 @@ import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @MappedSuperclass
 @Getter
@@ -29,7 +29,7 @@ public abstract class Auditable<T> extends ReuseId {
 
     @CreatedDate
     @Column(name = "created_date", nullable = false, updatable = false)
-    private Date createdDate;
+    private LocalDateTime createdDate;
 
     @LastModifiedBy
     @Column(name = "modified_by", nullable = false)
@@ -37,7 +37,7 @@ public abstract class Auditable<T> extends ReuseId {
 
     @LastModifiedDate
     @Column(name = "modified_date", nullable = false)
-    private Date modifiedDate;
+    private LocalDateTime modifiedDate;
 
     private int status = 1;
 }

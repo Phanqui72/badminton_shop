@@ -3,8 +3,6 @@ package com.mgr.api.dto;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
-import java.time.LocalDateTime;
-
 @Data
 public class ABasicAdminDto {
     @ApiModelProperty(name = "id")
@@ -12,7 +10,7 @@ public class ABasicAdminDto {
     @ApiModelProperty(name = "status")
     private Integer status;
     @ApiModelProperty(name = "modifiedDate")
-    private LocalDateTime modifiedDate;
+    private String modifiedDate;
     @ApiModelProperty(name = "createdDate")
-    private LocalDateTime createdDate;
+    private String createdDate;
 }

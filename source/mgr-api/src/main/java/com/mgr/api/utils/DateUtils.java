@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -29,13 +30,47 @@ public class DateUtils {
     }
 
     public static String formatDate(Date date) {
+        if (date == null) return null;
         SimpleDateFormat format = new SimpleDateFormat(FORMAT_DATE);
         return format.format(date);
     }
 
     public static String formatDate(Date date, String format) {
+        if (date == null) return null;
         SimpleDateFormat fm = new SimpleDateFormat(format);
         return fm.format(date);
+    }
+
+    public static String formatDate(LocalDateTime date, String format) {
+        if (date == null) return null;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+        return date.format(formatter);
+    }
+
+    public static String formatDate(LocalDate date, String format) {
+        if (date == null) return null;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+        return date.format(formatter);
+    }
+
+    public static LocalDateTime convertStringToLocalDateTime(String date, String format) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+            return LocalDateTime.parse(date, formatter);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return null;
+    }
+
+    public static LocalDate convertStringToLocalDate(String date, String format) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
+            return LocalDate.parse(date, formatter);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return null;
     }
 
     public static Date converDate(String date, String format) {

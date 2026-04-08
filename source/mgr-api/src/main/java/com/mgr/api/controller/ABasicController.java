@@ -35,12 +35,13 @@ public class ABasicController {
         return makeResponse(true, data, message, null);
     }
 
-    public <T, R> ResponseListDto<R> makeResponseListDto(Page<T> page, Function<List<T>, R> mapper) {
-        return new ResponseListDto<>(
+    public <T, R> ApiMessageDto<ResponseListDto<R>> makeResponseListDto(Page<T> page, Function<List<T>, List<R>> mapper) {
+        ResponseListDto<R> responseListDto = new ResponseListDto<>(
                 mapper.apply(page.getContent()),
                 page.getTotalElements(),
                 page.getTotalPages()
         );
+        return makeSuccessResponse(responseListDto, null);
     }
 
     public long getCurrentUser() {
