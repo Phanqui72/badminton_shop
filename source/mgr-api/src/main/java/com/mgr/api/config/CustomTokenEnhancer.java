@@ -36,7 +36,10 @@ public class CustomTokenEnhancer implements TokenEnhancer {
             additionalInfo = getAdditionalInfo(null, username, grantType, null);
         } else if (SecurityConstant.GRANT_TYPE_SELLER.equals(grantType)) {
             additionalInfo = getAdditionalInfoSeller(null, username, grantType, null);
-        } else {
+        } else if (SecurityConstant.GRANT_TYPE_USER.equals(grantType)) {
+            additionalInfo = getAdditionalInfoUser(null, username, grantType, null);
+        }
+        else {
             additionalInfo = getAdditionalInfoCustom(null, username, grantType, null);
         } // want other custom, define here
         ((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(additionalInfo);
@@ -155,6 +158,47 @@ public class CustomTokenEnhancer implements TokenEnhancer {
         return additionalInfo;
     }
 
+    private Map<String, Object> getAdditionalInfoUser(String tenantName, String identifier, String grantType, Long userId) {
+        Map<String, Object> additionalInfo = new HashMap<>();
+        AccountForTokenDto a = getAccountForUser(identifier);
+
+        if (a != null && Integer.valueOf(2).equals(a.getKind())) {
+            Long accountId = a.getId();
+            Long storeId = -1L;
+            String kind = a.getKind() + "";
+            Long deviceId = -1L;
+            String permission = "<>";
+            Integer userKind = a.getKind();
+            Integer tabletKind = -1;
+            Long orderId = -1L;
+            Boolean isSuperAdmin = a.getIsSuperAdmin();
+            String tenantId = "";
+
+            additionalInfo.put("user_id", accountId);
+            additionalInfo.put("user_kind", a.getKind());
+            additionalInfo.put("grant_type", grantType);
+
+            String DELIM = "|";
+            String additionalInfoStr = ZipUtils.zipString(accountId + DELIM
+                    + storeId + DELIM
+                    + kind + DELIM
+                    + permission + DELIM
+                    + deviceId + DELIM
+                    + userKind + DELIM
+                    + a.getUsername() + DELIM // Dùng username thật từ DB thay vì identifier
+                    + tabletKind + DELIM
+                    + orderId + DELIM
+                    + isSuperAdmin + DELIM
+                    + tenantId);
+            additionalInfo.put("additional_info", additionalInfoStr);
+
+            log.info("Seller login successful: {}", a.getUsername());
+        } else {
+            log.error("Seller login failed or account kind mismatch for identifier: {}", identifier);
+        }
+        return additionalInfo;
+    }
+
     public AccountForTokenDto getAccountByUsername(String username) {
         try {
             String query = "SELECT id, kind, username, email, full_name, is_super_admin " +
@@ -188,5 +232,18 @@ public class CustomTokenEnhancer implements TokenEnhancer {
             log.error("Error fetching seller info: {}", e.getMessage());
         }
         return null;
+    }
+    public AccountForTokenDto getAccountForUser(String email) {
+        try {
+            String query = "SELECT id, kind, username, email, full_name, is_super_admin " +
+                    "FROM " + TablePrefix.PREFIX_TABLE + "account WHERE email = ? and status = 1 limit 1";
+            log.debug(query);
+            List<AccountForTokenDto> dto = jdbcTemplate.query(query, new Object[]{email}, new BeanPropertyRowMapper<>(AccountForTokenDto.class));
+            if (!dto.isEmpty()) return dto.get(0);
+            return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
