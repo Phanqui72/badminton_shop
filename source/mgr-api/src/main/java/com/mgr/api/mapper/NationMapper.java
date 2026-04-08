@@ -15,13 +15,13 @@ public interface NationMapper {
     @Mapping(source = "name", target = "name")
     @Mapping(source = "kind", target = "kind")
     @Mapping(source = "postCode", target = "postCode")
-    @Mapping(source = "parentId", target = "parent.id")
+    @Mapping(source = "parentId", target = "parent", qualifiedByName = "fromParentId")
     Nation fromCreateFormToEntity(CreateNationForm form);
 
     @Mapping(source = "name", target = "name")
     @Mapping(source = "kind", target = "kind")
     @Mapping(source = "postCode", target = "postCode")
-    @Mapping(source = "parentId", target = "parent.id")
+    @Mapping(source = "parentId", target = "parent", qualifiedByName = "fromParentId")
     void mappingUpdateFormToEntity(UpdateNationForm form, @MappingTarget Nation nation);
 
     @Mapping(source = "id", target = "id")
@@ -36,4 +36,15 @@ public interface NationMapper {
 
     @IterableMapping(elementTargetType = NationDto.class)
     List<NationDto> fromEntityListToDtoList(List<Nation> list);
+
+    @Named("fromParentId")
+    default Nation fromParentId(Long parentId) {
+        if (parentId == null) {
+            return null;
+        }
+        Nation parent = new Nation();
+        parent.setId(parentId);
+        return parent;
+    }
 }
+

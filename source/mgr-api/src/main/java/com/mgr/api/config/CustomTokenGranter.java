@@ -38,12 +38,12 @@ public class CustomTokenGranter extends AbstractTokenGranter {
         try {
             if (SecurityConstant.GRANT_TYPE_CUSTOM.equalsIgnoreCase(tokenRequest.getGrantType())) {
                 return userService.getAccessTokenForCustom(client, tokenRequest, username, password, tenant, tokenRequest.getGrantType(), this.getTokenServices());
-            } else if (!Objects.equals(tokenRequest.getGrantType(), SecurityConstant.GRANT_TYPE_PASSWORD)) {
-                throw new InvalidTokenException("Invalid grant type: " + tokenRequest.getGrantType());
-            } else if (!Objects.equals(tokenRequest.getGrantType(), SecurityConstant.GRANT_TYPE_USER)){
+            } else if (SecurityConstant.GRANT_TYPE_USER.equalsIgnoreCase(tokenRequest.getGrantType())) {
                 return userService.getAccessTokenForUser(client, tokenRequest, username, password, tenant, tokenRequest.getGrantType(), this.getTokenServices());
-            } else if (!Objects.equals(tokenRequest.getGrantType(), SecurityConstant.GRANT_TYPE_SELLER)){
+            } else if (SecurityConstant.GRANT_TYPE_SELLER.equalsIgnoreCase(tokenRequest.getGrantType())) {
                 return userService.getAccessTokenForSeller(client, tokenRequest, username, password, tenant, tokenRequest.getGrantType(), this.getTokenServices());
+            } else if (!SecurityConstant.GRANT_TYPE_PASSWORD.equalsIgnoreCase(tokenRequest.getGrantType())) {
+                throw new InvalidTokenException("Invalid grant type: " + tokenRequest.getGrantType());
             }
             return null;
         } catch (GeneralSecurityException | IOException e) {

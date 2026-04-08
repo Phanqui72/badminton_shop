@@ -67,7 +67,7 @@ public class UserServiceImpl implements UserDetailsService {
                                                      String grantType,
                                                      AuthorizationServerTokenServices tokenServices) throws GeneralSecurityException, IOException {
         Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put("grantType", grantType);
+        requestParameters.put("grant_type", grantType);
         requestParameters.put("tenantId", tenant);
         String clientId = client.getClientId();
         boolean approved = true;
@@ -113,7 +113,7 @@ public class UserServiceImpl implements UserDetailsService {
                                                      AuthorizationServerTokenServices tokenServices) throws GeneralSecurityException, IOException {
         // Setup param that oauth2 required
         Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put("grantType", grantType);
+        requestParameters.put("grant_type", grantType);
         requestParameters.put("tenantId", tenant);
         String clientId = client.getClientId();
         boolean approved = true;
@@ -165,7 +165,7 @@ public class UserServiceImpl implements UserDetailsService {
                                                      AuthorizationServerTokenServices tokenServices) throws GeneralSecurityException, IOException {
         // Setup param that oauth2 required
         Map<String, String> requestParameters = new HashMap<>();
-        requestParameters.put("grantType", grantType);
+        requestParameters.put("grant_type", grantType);
         requestParameters.put("tenantId", tenant);
         String clientId = client.getClientId();
         boolean approved = true;
