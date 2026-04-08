@@ -25,18 +25,21 @@ public class PaymentService {
     @Value("${vnp_ReturnUrl}")
     private String vnp_ReturnUrl;
 
-    public String createPayment(HttpServletRequest request, long amount) throws UnsupportedEncodingException {
-        String vnp_TxnRef = VNPayConfig.getRandomNumber(8);
+    // SỬA: Thêm String orderId vào tham số của hàm
+    public String createPayment(HttpServletRequest request, long amount, String orderId) throws UnsupportedEncodingException {
+        String vnp_Version = "2.1.0";
+        String vnp_Command = "pay";
+        String vnp_TxnRef = orderId; // Sử dụng orderId truyền từ controller vào
         String vnp_IpAddr = "127.0.0.1";
 
         Map<String, String> vnp_Params = new HashMap<>();
-        vnp_Params.put("vnp_Version", "2.1.0");
-        vnp_Params.put("vnp_Command", "pay");
+        vnp_Params.put("vnp_Version", vnp_Version);
+        vnp_Params.put("vnp_Command", vnp_Command);
         vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
         vnp_Params.put("vnp_Amount", String.valueOf(amount * 100));
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", "ThanhToanDonHang" + vnp_TxnRef); // Viết liền không dấu cách
+        vnp_Params.put("vnp_OrderInfo", "ThanhToanDonHang" + vnp_TxnRef);
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
@@ -64,18 +67,9 @@ public class PaymentService {
                 }
             }
         }
-
         String queryUrl = query.toString();
         String vnp_SecureHash = VNPayConfig.hmacSHA512(vnp_HashSecret, hashData.toString());
         queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
-
-        // --- ĐOẠN DEBUG QUAN TRỌNG ---
-        System.out.println("--- KIỂM TRA VNPAY ---");
-        System.out.println("1. Secret Key đang dùng: " + vnp_HashSecret);
-        System.out.println("2. Chuỗi HashData trước khi băm: " + hashData.toString());
-        System.out.println("3. Mã SecureHash tạo ra: " + vnp_SecureHash);
-        System.out.println("-----------------------");
-
         return vnp_PayUrl + "?" + queryUrl;
     }
 }

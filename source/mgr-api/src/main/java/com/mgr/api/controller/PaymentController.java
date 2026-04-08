@@ -23,7 +23,7 @@ public class PaymentController {
             throws IOException, UnsupportedEncodingException { // Thêm 2 Exception này vào đây
 
         long amount = 1000000; // Số tiền: 10,000 VND
-        String paymentUrl = paymentService.createPayment(request, amount);
+        String paymentUrl = paymentService.createPayment(request, amount, "TEST_ORDER_ID_123");
 
         // Chuyển hướng trình duyệt sang VNPAY
         response.sendRedirect(paymentUrl);

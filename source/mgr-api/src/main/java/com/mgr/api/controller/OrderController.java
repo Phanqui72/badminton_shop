@@ -13,6 +13,7 @@ import com.mgr.api.model.*;
 import com.mgr.api.model.criteria.OrderCriteria;
 import com.mgr.api.repository.*;
 import com.mgr.api.repository.address.AddressRepository;
+import com.mgr.api.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/v1/order")
@@ -46,10 +49,13 @@ public class OrderController extends ABasicController {
     @Autowired
     private OrderMapper orderMapper;
 
+    @Autowired
+    private PaymentService paymentService;
+
     @PostMapping(value = "/checkout", produces = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ORD_C')")
     @Transactional
-    public ApiMessageDto<String> checkout(@Valid @RequestBody CheckoutForm form, BindingResult bindingResult) {
+    public ApiMessageDto<String> checkout(@Valid @RequestBody CheckoutForm form, BindingResult bindingResult, HttpServletRequest request) throws IOException {
         Long accountId = getCurrentUser();
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account not found", ErrorCode.ACCOUNT_ERROR_NOT_FOUND));
@@ -78,14 +84,14 @@ public class OrderController extends ABasicController {
             orderItem.setProduct(cartItem.getProduct());
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setPrice(cartItem.getProduct().getPrice());
-            
+
             // Stock deduction
             Product product = cartItem.getProduct();
             if (product.getStock() < cartItem.getQuantity()) {
                 throw new BadRequestException("Product " + product.getName() + " out of stock", ErrorCode.PRODUCT_ERROR_NOT_FOUND);
             }
             product.setStock(product.getStock() - cartItem.getQuantity());
-            
+
             order.getItems().add(orderItem);
             total += orderItem.getPrice() * orderItem.getQuantity();
         }
@@ -97,7 +103,47 @@ public class OrderController extends ABasicController {
         cart.getItems().clear();
         cartRepository.save(cart);
 
+        //VN Pay
+        if (form.getPaymentMethod() == 2) {
+            String paymentUrl = paymentService.createPayment(request, (long) total, order.getId().toString());
+            return makeSuccessResponse(paymentUrl, "Please redirect to VNPAY for payment");
+        }
+
         return makeSuccessResponse(null, "Order placed successfully");
+    }
+    @GetMapping(value = "/vnpay-callback", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Transactional
+    public ApiMessageDto<String> vnpayCallback(HttpServletRequest request) {
+        String vnp_ResponseCode = request.getParameter("vnp_ResponseCode");
+        String orderIdStr = request.getParameter("vnp_TxnRef");
+
+        if (orderIdStr != null && !orderIdStr.isEmpty()) {
+            Long orderId = Long.parseLong(orderIdStr);
+            Order order = orderRepository.findById(orderId).orElse(null);
+
+            if (order != null) {
+                if ("00".equals(vnp_ResponseCode)) {
+                    order.setStatus(1); // Giả sử 1 là đã thanh toán
+                    orderRepository.save(order);
+                    return makeSuccessResponse(null, "Payment success");
+                } else {
+                    order.setStatus(-1); // Giả sử -1 là thất bại/hủy
+                    orderRepository.save(order);
+
+                    // SỬA: Thay makeErrorResponse bằng cách khởi tạo DTO trực tiếp
+                    // hoặc dùng phương thức phù hợp của BaseController
+                    ApiMessageDto<String> response = new ApiMessageDto<>();
+                    response.setResult(false);
+                    response.setMessage("Payment failed with code: " + vnp_ResponseCode);
+                    return response;
+                }
+            }
+        }
+        // SỬA tương tự cho lỗi không tìm thấy Order
+        ApiMessageDto<String> response = new ApiMessageDto<>();
+        response.setResult(false);
+        response.setMessage("Order not found");
+        return response;
     }
 
     @GetMapping(value = "/list", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -117,7 +163,7 @@ public class OrderController extends ABasicController {
     public ApiMessageDto<ResponseListDto<OrderDto>> listMyOrders(Pageable pageable) {
         OrderCriteria criteria = new OrderCriteria();
         criteria.setAccountId(getCurrentUser());
-        
+
         Page<Order> page = orderRepository.findAll(criteria.getSpecification(), pageable);
         ResponseListDto<OrderDto> listDto = new ResponseListDto(
                 orderMapper.fromEntityListToDtoList(page.getContent()),
