@@ -28,6 +28,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.IOException;
 
+import static com.mgr.api.constant.MgrConstant.TOTAL_PRICE_DEFAULT;
+
 @RestController
 @RequestMapping("/v1/order")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
@@ -77,7 +79,7 @@ public class OrderController extends ABasicController {
         order.setPaymentMethod(form.getPaymentMethod());
         order.setStatus(MgrConstant.STATUS_PENDING);
 
-        double total = 0;
+        double total = TOTAL_PRICE_DEFAULT;
         for (CartItem cartItem : cart.getItems()) {
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -104,8 +106,8 @@ public class OrderController extends ABasicController {
         cartRepository.save(cart);
 
         //VN Pay
-        if (form.getPaymentMethod() == 2) {
-            String paymentUrl = paymentService.createPayment(request, (long) total, order.getId().toString());
+        if (MgrConstant.PAYMENT_METHOD_VNPAY.equals(order.getPaymentMethod())) {
+            String paymentUrl = paymentService.createPaymentUrl((long) total, order.getId().toString());
             return makeSuccessResponse(paymentUrl, "Please redirect to VNPAY for payment");
         }
 
@@ -113,37 +115,32 @@ public class OrderController extends ABasicController {
     }
     @GetMapping(value = "/vnpay-callback", produces = MediaType.APPLICATION_JSON_VALUE)
     @Transactional
-    public ApiMessageDto<String> vnpayCallback(HttpServletRequest request) {
-        String vnp_ResponseCode = request.getParameter("vnp_ResponseCode");
-        String orderIdStr = request.getParameter("vnp_TxnRef");
+    public ApiMessageDto<String> vnpayCallback(@RequestParam("vnp_ResponseCode") String vnp_ResponseCode,
+                                               @RequestParam("vnp_TxnRef") String orderId) {
+        Order order = orderRepository.findById(Long.parseLong(orderId)).orElse(null);
 
-        if (orderIdStr != null && !orderIdStr.isEmpty()) {
-            Long orderId = Long.parseLong(orderIdStr);
-            Order order = orderRepository.findById(orderId).orElse(null);
-
-            if (order != null) {
-                if ("00".equals(vnp_ResponseCode)) {
-                    order.setStatus(1); // Giả sử 1 là đã thanh toán
-                    orderRepository.save(order);
-                    return makeSuccessResponse(null, "Payment success");
-                } else {
-                    order.setStatus(-1); // Giả sử -1 là thất bại/hủy
-                    orderRepository.save(order);
-
-                    // SỬA: Thay makeErrorResponse bằng cách khởi tạo DTO trực tiếp
-                    // hoặc dùng phương thức phù hợp của BaseController
-                    ApiMessageDto<String> response = new ApiMessageDto<>();
-                    response.setResult(false);
-                    response.setMessage("Payment failed with code: " + vnp_ResponseCode);
-                    return response;
-                }
-            }
+        if (order == null) {
+            return buildResponse(false, "Order not found");
         }
-        // SỬA tương tự cho lỗi không tìm thấy Order
-        ApiMessageDto<String> response = new ApiMessageDto<>();
-        response.setResult(false);
-        response.setMessage("Order not found");
-        return response;
+
+        // Kiểm tra kết quả thanh toán từ VNPAY
+        if (MgrConstant.VNP_RESPONSE_FINISHED.equals(vnp_ResponseCode)) {
+            order.setStatus(MgrConstant.ORDER_STATUS_PAID);
+            orderRepository.save(order);
+            return makeSuccessResponse(null, "Payment success");
+        } else {
+            order.setStatus(MgrConstant.ORDER_STATUS_FAILED);
+            orderRepository.save(order);
+            return buildResponse(false, "Payment failed with code: " + vnp_ResponseCode);
+        }
+    }
+
+    // Hàm tiện ích để build response lỗi khi cần
+    private ApiMessageDto<String> buildResponse(boolean result, String message) {
+        ApiMessageDto<String> dto = new ApiMessageDto<>();
+        dto.setResult(result);
+        dto.setMessage(message);
+        return dto;
     }
 
     @GetMapping(value = "/list", produces = MediaType.APPLICATION_JSON_VALUE)

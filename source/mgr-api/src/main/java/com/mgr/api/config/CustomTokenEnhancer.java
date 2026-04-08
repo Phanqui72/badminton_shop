@@ -36,7 +36,7 @@ public class CustomTokenEnhancer implements TokenEnhancer {
             additionalInfo = getAdditionalInfo(null, username, grantType, null);
         } else {
             additionalInfo = getAdditionalInfoCustom(null, username, grantType, null);
-        }
+        } // if want other custom, define here
         ((DefaultOAuth2AccessToken) accessToken).setAdditionalInformation(additionalInfo);
         return accessToken;
     }
@@ -79,7 +79,7 @@ public class CustomTokenEnhancer implements TokenEnhancer {
 
     private Map<String, Object> getAdditionalInfoCustom(String tenantName, String username, String grantType, Long userId) {
         Map<String, Object> additionalInfo = new HashMap<>();
-        AccountForTokenDto a = getAccountByUsername(username);
+        AccountForTokenDto a = getAccountByUsername(username); // load by ...
 
         if (a != null) {
             Long accountId = a.getId();

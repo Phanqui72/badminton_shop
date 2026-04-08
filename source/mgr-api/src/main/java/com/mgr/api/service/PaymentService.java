@@ -1,10 +1,10 @@
 package com.mgr.api.service;
 
-import com.mgr.api.config.VNPayConfig;
+import com.mgr.api.constant.MgrConstant;
+import com.mgr.api.config.VNPayConfig; // Hoặc VNPayUtils nếu bạn đã đổi tên
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletRequest;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -20,34 +20,27 @@ public class PaymentService {
     private String vnp_HashSecret;
 
     @Value("${vnp_PayUrl}")
-    private String vnp_PayUrl;
+    private String vnp_Url;
 
     @Value("${vnp_ReturnUrl}")
     private String vnp_ReturnUrl;
 
-    // SỬA: Thêm String orderId vào tham số của hàm
-    public String createPayment(HttpServletRequest request, long amount, String orderId) throws UnsupportedEncodingException {
-        String vnp_Version = "2.1.0";
-        String vnp_Command = "pay";
-        String vnp_TxnRef = orderId; // Sử dụng orderId truyền từ controller vào
-        String vnp_IpAddr = "127.0.0.1";
-
+    public String createPaymentUrl(long amount, String txnRef) throws UnsupportedEncodingException {
         Map<String, String> vnp_Params = new HashMap<>();
-        vnp_Params.put("vnp_Version", vnp_Version);
-        vnp_Params.put("vnp_Command", vnp_Command);
+        vnp_Params.put("vnp_Version", MgrConstant.VNP_VERSION);
+        vnp_Params.put("vnp_Command", MgrConstant.VNP_COMMAND_PAY);
         vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
         vnp_Params.put("vnp_Amount", String.valueOf(amount * 100));
-        vnp_Params.put("vnp_CurrCode", "VND");
-        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", "ThanhToanDonHang" + vnp_TxnRef);
-        vnp_Params.put("vnp_OrderType", "other");
-        vnp_Params.put("vnp_Locale", "vn");
+        vnp_Params.put("vnp_CurrCode", MgrConstant.VNP_CURRENCY_VND);
+        vnp_Params.put("vnp_TxnRef", txnRef);
+        vnp_Params.put("vnp_OrderInfo", "ThanhToanDonHang" + txnRef);
+        vnp_Params.put("vnp_OrderType", MgrConstant.VNP_ORDER_TYPE_OTHER);
+        vnp_Params.put("vnp_Locale", MgrConstant.VNP_LOCALE_VN);
         vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
-        vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
+        vnp_Params.put("vnp_IpAddr", MgrConstant.VNP_DEFAULT_IP);
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-        vnp_Params.put("vnp_CreateDate", formatter.format(cld.getTime()));
+        vnp_Params.put("vnp_CreateDate", new SimpleDateFormat("yyyyMMddHHmmss").format(cld.getTime()));
 
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
@@ -59,17 +52,18 @@ public class PaymentService {
             String fieldName = itr.next();
             String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                hashData.append(fieldName).append('=').append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
-                query.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII.toString())).append('=').append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII.toString()));
+                String encodedValue = URLEncoder.encode(fieldValue, StandardCharsets.UTF_8.toString());
+                hashData.append(fieldName).append('=').append(encodedValue);
+                query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8.toString()))
+                        .append('=').append(encodedValue);
                 if (itr.hasNext()) {
                     query.append('&');
                     hashData.append('&');
                 }
             }
         }
-        String queryUrl = query.toString();
+
         String vnp_SecureHash = VNPayConfig.hmacSHA512(vnp_HashSecret, hashData.toString());
-        queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
-        return vnp_PayUrl + "?" + queryUrl;
+        return vnp_Url + "?" + query.toString() + "&vnp_SecureHash=" + vnp_SecureHash;
     }
 }
