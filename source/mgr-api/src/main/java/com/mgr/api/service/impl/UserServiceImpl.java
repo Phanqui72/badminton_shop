@@ -122,7 +122,7 @@ public class UserServiceImpl implements UserDetailsService {
         Map<String, Serializable> extensionProperties = new HashMap<>();
 
         // Check info account
-        Account account = accountRepository.findFirstByUsername(username).orElse(null);
+        Account account = accountRepository.findFirstByEmail(username);
         if (account == null) {
             log.error("Invalid username or password.");
             throw new UsernameNotFoundException("Invalid username or password.");
