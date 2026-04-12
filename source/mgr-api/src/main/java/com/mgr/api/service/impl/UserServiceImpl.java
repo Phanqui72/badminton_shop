@@ -104,7 +104,7 @@ public class UserServiceImpl implements UserDetailsService {
         OAuth2Authentication auth = new OAuth2Authentication(oAuth2Request, authenticationToken);
         return tokenServices.createAccessToken(auth);
     }
-    
+
     public OAuth2AccessToken getAccessTokenForUser(ClientDetails client,
                                                      TokenRequest tokenRequest,
                                                      String username,

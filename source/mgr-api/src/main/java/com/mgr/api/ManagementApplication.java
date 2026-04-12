@@ -13,10 +13,13 @@ import javax.annotation.PostConstruct;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
 @SpringBootApplication
 @EnableJpaAuditing(auditorAwareRef = "auditorAware")
 @EnableAsync
 @EnableAspectJAutoProxy
+@EnableFeignClients
 public class ManagementApplication {
     @Bean
     public AuditorAware<String> auditorAware() {
